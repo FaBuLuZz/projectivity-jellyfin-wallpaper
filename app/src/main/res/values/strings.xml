@@ -25,6 +25,8 @@
     <string name="style_backdrop_desc">The raw Jellyfin backdrop, with Projectivy\'s own title overlay</string>
     <string name="style_composed">Composed card</string>
     <string name="style_composed_desc">Backdrop, logo, rating and plot rendered into the image</string>
+    <string name="style_composed_minimal">Composed card (minimal)</string>
+    <string name="style_composed_minimal_desc">Backdrop and logo only — no metadata or plot</string>
     <string name="setting_sort">Order</string>
     <string name="sort_random">Random</string>
     <string name="sort_recent">Recently added</string>

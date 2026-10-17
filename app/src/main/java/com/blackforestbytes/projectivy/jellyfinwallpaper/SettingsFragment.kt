@@ -445,9 +445,9 @@ class SettingsFragment : GuidedStepSupportFragment() {
         private const val SUB_LIMIT_BASE = 600_000L
 
         /** Indexed by [WallpaperStyle.ordinal]. */
-        private val STYLE_LABELS = listOf(R.string.style_backdrop, R.string.style_composed)
+        private val STYLE_LABELS = listOf(R.string.style_backdrop, R.string.style_composed, R.string.style_composed_minimal)
         private val STYLE_DESCRIPTIONS =
-            listOf(R.string.style_backdrop_desc, R.string.style_composed_desc)
+            listOf(R.string.style_backdrop_desc, R.string.style_composed_desc, R.string.style_composed_minimal_desc)
 
         /** Indexed by [SortMode.ordinal]. */
         private val SORT_LABELS = listOf(R.string.sort_random, R.string.sort_recent)

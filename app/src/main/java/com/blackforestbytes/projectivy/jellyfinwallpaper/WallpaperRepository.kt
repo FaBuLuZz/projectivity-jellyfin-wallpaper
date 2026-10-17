@@ -115,7 +115,7 @@ object WallpaperRepository {
 
         val items = fetchItems(client, config, limit)
 
-        val composed = style == WallpaperStyle.COMPOSED
+        val composed = style == WallpaperStyle.COMPOSED || style == WallpaperStyle.COMPOSED_MINIMAL
         val metas = mutableListOf<ComposeMeta>()
 
         // Rendered images are keyed only by item id and frame size, so every other setting that

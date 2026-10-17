@@ -70,7 +70,10 @@ enum class WallpaperStyle(val key: String) {
     BACKDROP("backdrop"),
 
     /** Render backdrop, logo and metadata into one image, served over a `content://` URI. */
-    COMPOSED("composed");
+    COMPOSED("composed"),
+
+    /** Like [COMPOSED] but without overview and community rating. */
+    COMPOSED_MINIMAL("composed_minimal");
 
     companion object {
         fun from(key: String?): WallpaperStyle = entries.firstOrNull { it.key == key } ?: BACKDROP

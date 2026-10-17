@@ -65,7 +65,7 @@ class WallpaperImageProvider : ContentProvider() {
                 ?.let { ImageFetcher.bytes(it) }
                 ?.let { WallpaperComposer.decode(it, WallpaperComposer.logoRequestWidth(width)) }
 
-            composed = WallpaperComposer.compose(meta, art, logo, width, height)
+            composed = WallpaperComposer.compose(meta, art, logo, width, height, PreferencesManager.wallpaperStyle == WallpaperStyle.COMPOSED_MINIMAL)
             temp.outputStream().use { composed.compress(Bitmap.CompressFormat.JPEG, 92, it) }
             temp.renameTo(target)
         } catch (e: Exception) {

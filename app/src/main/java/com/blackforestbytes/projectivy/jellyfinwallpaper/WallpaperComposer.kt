@@ -49,7 +49,7 @@ object WallpaperComposer {
     /** Scales a frame dimension down to the box the backdrop is drawn into. */
     fun artSize(dimension: Int): Int = (dimension * ART_SCALE).toInt()
 
-    fun compose(meta: ComposeMeta, art: Bitmap?, logo: Bitmap?, width: Int, height: Int): Bitmap {
+    fun compose(meta: ComposeMeta, art: Bitmap?, logo: Bitmap?, width: Int, height: Int, minimal: Boolean = false): Bitmap {
         val scale = scaleOf(width)
         val out = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
@@ -109,20 +109,21 @@ object WallpaperComposer {
             )
         }
 
-        metaLine(meta)?.let { line ->
-            y += BLOCK_GAP * scale
-            y += drawText(
-                canvas, line, left, y, contentWidth, maxLines = 2,
-                paint = textPaint(META_COLOR, META_SIZE * scale, bold = true)
-            )
-        }
-
-        meta.overview?.takeIf { it.isNotBlank() }?.let { overview ->
-            y += BLOCK_GAP * scale
-            drawText(
-                canvas, overview.trim(), left, y, contentWidth, maxLines = 3,
-                paint = textPaint(OVERVIEW_COLOR, OVERVIEW_SIZE * scale, bold = false)
-            )
+        if (!minimal) {
+            metaLine(meta)?.let { line ->
+                y += BLOCK_GAP * scale
+                y += drawText(
+                    canvas, line, left, y, contentWidth, maxLines = 2,
+                    paint = textPaint(META_COLOR, META_SIZE * scale, bold = true)
+                )
+            }
+            meta.overview?.takeIf { it.isNotBlank() }?.let { overview ->
+                y += BLOCK_GAP * scale
+                drawText(
+                    canvas, overview.trim(), left, y, contentWidth, maxLines = 3,
+                    paint = textPaint(OVERVIEW_COLOR, OVERVIEW_SIZE * scale, bold = false)
+                )
+            }
         }
 
         return out
