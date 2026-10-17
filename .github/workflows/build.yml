@@ -16,11 +16,11 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - run: ./gradlew :app:assembleDebug
+      - run: ./gradlew :app:assembleRelease
 
-      - run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/projectivity-jellyfin-wallpaper.apk
+      - run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/projectivity-jellyfin-wallpaper.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: projectivity-jellyfin-wallpaper
-          path: app/build/outputs/apk/debug/projectivity-jellyfin-wallpaper.apk
+          path: app/build/outputs/apk/release/projectivity-jellyfin-wallpaper.apk
