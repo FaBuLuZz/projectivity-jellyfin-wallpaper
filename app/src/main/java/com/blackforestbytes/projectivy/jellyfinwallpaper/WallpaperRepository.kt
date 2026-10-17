@@ -25,7 +25,9 @@ object WallpaperRepository {
 
     private const val TAG = "WallpaperRepository"
     private const val CACHE_FILE = "wallpapers.json"
+    private const val CACHE_FILE_IDLE = "wallpapers_idle.json"
     private const val META_FILE = "compose_meta.json"
+    private const val META_FILE_IDLE = "compose_meta_idle.json"
 
     /**
      * Projectivy holds a wallpaper list for itemsCacheDurationMillis, which outlives our own
@@ -41,8 +43,10 @@ object WallpaperRepository {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val refreshLock = Mutex()
 
-    private fun cacheFile(context: Context) = File(context.filesDir, CACHE_FILE)
-    private fun metaFile(context: Context) = File(context.filesDir, META_FILE)
+    private fun cacheFile(context: Context, idle: Boolean = false) =
+        File(context.filesDir, if (idle) CACHE_FILE_IDLE else CACHE_FILE)
+    private fun metaFile(context: Context, idle: Boolean = false) =
+        File(context.filesDir, if (idle) META_FILE_IDLE else META_FILE)
 
     private inline fun <reified T> readJson(file: File): T? = try {
         file.takeIf { it.exists() }?.readText()?.let { json.decodeFromString<T>(it) }
@@ -59,15 +63,17 @@ object WallpaperRepository {
         }
     }
 
-    fun cachedWallpapers(context: Context): List<CachedWallpaper> {
-        val cache = readJson<WallpaperCacheFile>(cacheFile(context)) ?: return emptyList()
-        if (cache.configFingerprint != PreferencesManager.configFingerprint()) return emptyList()
+    fun cachedWallpapers(context: Context, idle: Boolean = false): List<CachedWallpaper> {
+        val effectiveIdle = idle && PreferencesManager.idleWallpaperStyle != PreferencesManager.wallpaperStyle
+        val cache = readJson<WallpaperCacheFile>(cacheFile(context, effectiveIdle)) ?: return emptyList()
+        if (cache.configFingerprint != PreferencesManager.configFingerprint(effectiveIdle)) return emptyList()
         return cache.wallpapers
     }
 
-    fun isStale(context: Context): Boolean {
-        val cache = readJson<WallpaperCacheFile>(cacheFile(context)) ?: return true
-        if (cache.configFingerprint != PreferencesManager.configFingerprint()) return true
+    fun isStale(context: Context, idle: Boolean = false): Boolean {
+        val effectiveIdle = idle && PreferencesManager.idleWallpaperStyle != PreferencesManager.wallpaperStyle
+        val cache = readJson<WallpaperCacheFile>(cacheFile(context, effectiveIdle)) ?: return true
+        if (cache.configFingerprint != PreferencesManager.configFingerprint(effectiveIdle)) return true
         if (cache.wallpapers.isEmpty()) return true
         return System.currentTimeMillis() - cache.fetchedAtMillis > STALE_AFTER_MILLIS
     }
@@ -75,13 +81,15 @@ object WallpaperRepository {
     /** Looked up by [WallpaperImageProvider] when it has to render an item. */
     fun composeMeta(context: Context, itemId: String): ComposeMeta? =
         readJson<ComposeMetaFile>(metaFile(context))?.entries?.firstOrNull { it.itemId == itemId }
+            ?: readJson<ComposeMetaFile>(metaFile(context, idle = true))?.entries?.firstOrNull { it.itemId == itemId }
 
-    fun refreshAsync(context: Context) {
+    fun refreshAsync(context: Context, idle: Boolean = false) {
+        val effectiveIdle = idle && PreferencesManager.idleWallpaperStyle != PreferencesManager.wallpaperStyle
         val appContext = context.applicationContext
         scope.launch {
             if (!refreshLock.tryLock()) return@launch
             try {
-                val count = refreshBlocking(appContext)
+                val count = refreshBlocking(appContext, effectiveIdle)
                 if (count > 0) notifyProjectivy(appContext)
             } catch (e: Exception) {
                 Log.e(TAG, "Refresh failed", e)
@@ -92,7 +100,7 @@ object WallpaperRepository {
     }
 
     /** Returns the number of wallpapers written. Caller must be off the main and binder threads. */
-    fun refreshBlocking(context: Context): Int {
+    fun refreshBlocking(context: Context, idle: Boolean = false): Int {
         PreferencesManager.init(context)
         if (!PreferencesManager.isConfigured) return 0
 
@@ -107,8 +115,8 @@ object WallpaperRepository {
                 ?.let { PreferencesManager.serverId = it }
         }
 
-        val config = PreferencesManager.queryConfig()
-        val style = PreferencesManager.wallpaperStyle
+        val config = PreferencesManager.queryConfig(idle)
+        val style = if (idle) PreferencesManager.idleWallpaperStyle else PreferencesManager.wallpaperStyle
         val limit = PreferencesManager.wallpaperLimit
         val width = if (PreferencesManager.fourK) 3840 else 1920
         val height = if (PreferencesManager.fourK) 2160 else 1080
@@ -120,8 +128,8 @@ object WallpaperRepository {
 
         // Rendered images are keyed only by item id and frame size, so every other setting that
         // feeds into them has to drop the cache explicitly.
-        val fingerprint = PreferencesManager.configFingerprint()
-        if (readJson<WallpaperCacheFile>(cacheFile(context))?.configFingerprint != fingerprint) {
+        val fingerprint = PreferencesManager.configFingerprint(idle)
+        if (readJson<WallpaperCacheFile>(cacheFile(context, idle))?.configFingerprint != fingerprint) {
             WallpaperImageProvider.clear(context)
         }
 
@@ -159,17 +167,17 @@ object WallpaperRepository {
                 )
             }
 
-        if (composed) retainMetas(context, metas, metaRetained(limit))
+        if (composed) retainMetas(context, metas, metaRetained(limit), idle)
 
         writeJson(
-            cacheFile(context),
+            cacheFile(context, idle),
             WallpaperCacheFile(
                 fetchedAtMillis = System.currentTimeMillis(),
                 configFingerprint = fingerprint,
                 wallpapers = wallpapers,
             )
         )
-        Log.i(TAG, "Cached ${wallpapers.size} wallpapers (${style.key})")
+        Log.i(TAG, "Cached ${wallpapers.size} wallpapers (${style.key}, idle=$idle)")
         return wallpapers.size
     }
 
@@ -214,10 +222,10 @@ object WallpaperRepository {
     }
 
     /** New entries win; older ones survive until they fall off the end. */
-    private fun retainMetas(context: Context, fresh: List<ComposeMeta>, retained: Int) {
-        val previous = readJson<ComposeMetaFile>(metaFile(context))?.entries ?: emptyList()
+    private fun retainMetas(context: Context, fresh: List<ComposeMeta>, retained: Int, idle: Boolean = false) {
+        val previous = readJson<ComposeMetaFile>(metaFile(context, idle))?.entries ?: emptyList()
         val merged = (fresh + previous).distinctBy { it.itemId }.take(retained)
-        writeJson(metaFile(context), ComposeMetaFile(merged))
+        writeJson(metaFile(context, idle), ComposeMetaFile(merged))
     }
 
     private fun buildSubtitle(item: Item): String? {

@@ -14,6 +14,8 @@ import tv.projectivy.plugin.wallpaperprovider.api.WallpaperType
 @Suppress("WrongConstant") // IntDef annotations on the vendored api module confuse lint here
 class WallpaperProviderService : Service() {
 
+    private var isIdle = false
+
     override fun onCreate() {
         super.onCreate()
         PreferencesManager.init(this)
@@ -27,14 +29,16 @@ class WallpaperProviderService : Service() {
             if (event !is Event.TimeElapsed && event !is Event.LauncherIdleModeChanged) {
                 return emptyList()
             }
+            if (event is Event.LauncherIdleModeChanged) isIdle = event.isIdle
 
             // Never fetch here — this call is on a binder thread with a short timeout.
-            val cached = WallpaperRepository.cachedWallpapers(this@WallpaperProviderService)
-            if (WallpaperRepository.isStale(this@WallpaperProviderService)) {
-                WallpaperRepository.refreshAsync(this@WallpaperProviderService)
+            val cached = WallpaperRepository.cachedWallpapers(this@WallpaperProviderService, isIdle)
+            if (WallpaperRepository.isStale(this@WallpaperProviderService, isIdle)) {
+                WallpaperRepository.refreshAsync(this@WallpaperProviderService, isIdle)
             }
 
-            val composed = PreferencesManager.wallpaperStyle == WallpaperStyle.COMPOSED
+            val style = if (isIdle) PreferencesManager.idleWallpaperStyle else PreferencesManager.wallpaperStyle
+            val composed = style == WallpaperStyle.COMPOSED || style == WallpaperStyle.COMPOSED_MINIMAL
             val actionUriFor = DeepLinks.actionUriBuilder(
                 this@WallpaperProviderService,
                 PreferencesManager.clientPackage,

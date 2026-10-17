@@ -35,6 +35,7 @@ object PreferencesManager {
     private const val KEY_CLIENT_PACKAGE = "client_package"
     private const val KEY_DEVICE_ID = "device_id"
     private const val KEY_STYLE = "wallpaper_style"
+    private const val KEY_IDLE_STYLE = "idle_wallpaper_style"
     private const val KEY_LIMIT = "wallpaper_limit"
     private const val KEY_SORT = "sort_mode"
     private const val KEY_BALANCE_TYPES = "balance_types"
@@ -121,6 +122,10 @@ object PreferencesManager {
         get() = WallpaperStyle.from(preferences.getString(KEY_STYLE, null))
         set(value) = preferences.edit().putString(KEY_STYLE, value.key).apply()
 
+    var idleWallpaperStyle: WallpaperStyle
+        get() = WallpaperStyle.from(preferences.getString(KEY_IDLE_STYLE, null))
+        set(value) = preferences.edit().putString(KEY_IDLE_STYLE, value.key).apply()
+
     var wallpaperLimit: Int
         get() = preferences.getInt(KEY_LIMIT, DEFAULT_LIMIT)
         set(value) = preferences.edit().putInt(KEY_LIMIT, value).apply()
@@ -147,7 +152,7 @@ object PreferencesManager {
     val isConfigured: Boolean
         get() = serverUrl.isNotEmpty() && token.isNotEmpty() && userId.isNotEmpty()
 
-    fun queryConfig() = QueryConfig(
+    fun queryConfig(idle: Boolean = false) = QueryConfig(
         userId = userId,
         parentIds = libraries,
         itemTypes = itemTypes,
@@ -156,18 +161,22 @@ object PreferencesManager {
         playedFilter = playedFilter,
         sortMode = sortMode,
         balanceTypes = balanceTypes,
-        richMetadata = wallpaperStyle == WallpaperStyle.COMPOSED,
+        richMetadata = run {
+            val style = if (idle) idleWallpaperStyle else wallpaperStyle
+            style == WallpaperStyle.COMPOSED
+        },
     )
 
     /** Any change here invalidates the cached wallpaper list. */
-    fun configFingerprint(): String = listOf(
+    fun configFingerprint(idle: Boolean = false): String = listOf(
         serverUrl, userId,
         libraries.sorted().joinToString(","),
         itemTypes.sorted().joinToString(","),
         genres.sorted().joinToString(","),
         officialRatings.sorted().joinToString(","),
         playedFilter.key, fourK.toString(),
-        wallpaperStyle.key, sortMode.key, wallpaperLimit.toString(),
+        (if (idle) idleWallpaperStyle else wallpaperStyle).key,
+        sortMode.key, wallpaperLimit.toString(),
         balanceTypes.toString(),
     ).joinToString("|")
 

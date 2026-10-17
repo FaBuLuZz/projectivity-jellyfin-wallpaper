@@ -20,7 +20,8 @@
     <string name="watch_state_all">All</string>
     <string name="watch_state_unwatched">Unwatched only</string>
     <string name="watch_state_watched">Watched only</string>
-    <string name="setting_style">Wallpaper style</string>
+    <string name="setting_style">Wallpaper style (active)</string>
+    <string name="setting_idle_style">Wallpaper style (idle)</string>
     <string name="style_backdrop">Plain backdrop</string>
     <string name="style_backdrop_desc">The raw Jellyfin backdrop, with Projectivy\'s own title overlay</string>
     <string name="style_composed">Composed card</string>

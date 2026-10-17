@@ -101,6 +101,11 @@ class SettingsFragment : GuidedStepSupportFragment() {
                 .subActions(styleSubActions()).build()
         )
         actions.add(
+            GuidedAction.Builder(ctx).id(ACTION_IDLE_STYLE)
+                .title(R.string.setting_idle_style).description(idleStyleLabel())
+                .subActions(idleStyleSubActions()).build()
+        )
+        actions.add(
             GuidedAction.Builder(ctx).id(ACTION_SORT)
                 .title(R.string.setting_sort).description(sortLabel())
                 .subActions(sortSubActions()).build()
@@ -209,6 +214,11 @@ class SettingsFragment : GuidedStepSupportFragment() {
                 PreferencesManager.wallpaperStyle =
                     WallpaperStyle.entries[(action.id - SUB_STYLE_BASE).toInt()]
                 updateDescription(ACTION_STYLE, styleLabel())
+            }
+            action.id >= SUB_IDLE_STYLE_BASE && action.id < SUB_IDLE_STYLE_BASE + 1000 -> {
+                PreferencesManager.idleWallpaperStyle =
+                    WallpaperStyle.entries[(action.id - SUB_IDLE_STYLE_BASE).toInt()]
+                updateDescription(ACTION_IDLE_STYLE, idleStyleLabel())
             }
             action.id >= SUB_SORT_BASE && action.id < SUB_SORT_BASE + 1000 -> {
                 PreferencesManager.sortMode = SortMode.entries[(action.id - SUB_SORT_BASE).toInt()]
@@ -376,6 +386,20 @@ class SettingsFragment : GuidedStepSupportFragment() {
     private fun styleLabel(): String =
         getString(STYLE_LABELS[PreferencesManager.wallpaperStyle.ordinal])
 
+    private fun idleStyleSubActions(): MutableList<GuidedAction> =
+        WallpaperStyle.entries.mapIndexed { index, style ->
+            GuidedAction.Builder(context)
+                .id(SUB_IDLE_STYLE_BASE + index)
+                .title(getString(STYLE_LABELS[index]))
+                .description(getString(STYLE_DESCRIPTIONS[index]))
+                .checkSetId(GuidedAction.DEFAULT_CHECK_SET_ID)
+                .checked(style == PreferencesManager.idleWallpaperStyle)
+                .build()
+        }.toMutableList()
+
+    private fun idleStyleLabel(): String =
+        getString(STYLE_LABELS[PreferencesManager.idleWallpaperStyle.ordinal])
+
     private fun sortSubActions(): MutableList<GuidedAction> =
         SortMode.entries.mapIndexed { index, mode ->
             GuidedAction.Builder(context)
@@ -433,6 +457,7 @@ class SettingsFragment : GuidedStepSupportFragment() {
         private const val ACTION_CLIENT = 11L
         private const val ACTION_REFRESH = 12L
         private const val ACTION_STYLE = 13L
+        private const val ACTION_IDLE_STYLE = 17L
         private const val ACTION_SORT = 14L
         private const val ACTION_LIMIT = 15L
         private const val ACTION_BALANCE = 16L
@@ -441,6 +466,7 @@ class SettingsFragment : GuidedStepSupportFragment() {
         private const val SUB_CLIENT_BASE = 200_000L
         private const val SUB_PLAYED_BASE = 300_000L
         private const val SUB_STYLE_BASE = 400_000L
+        private const val SUB_IDLE_STYLE_BASE = 700_000L
         private const val SUB_SORT_BASE = 500_000L
         private const val SUB_LIMIT_BASE = 600_000L
 
